@@ -35,7 +35,8 @@ metadata {
     preferences() {    	
         section(""){
 			input "preset", "number", title: "Preset position", description: "Set the window shade preset position", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
-            input "logEnable", "bool", title: "Enable logging", required: true, defaultValue: true
+            input "logEnable", "bool", title: "Enable Debug logging", required: true, defaultValue: true
+            input "logInfoEnable", "bool", title: "Enable text info logging", required: true, defaultValue: true
         }
     }
 
@@ -214,6 +215,7 @@ def batteryPercentageEventHandler(batteryLevel) {
 
 def close() {
 	if(logEnable) log.info "close()"
+    if(logInfoEnable) log.info "close()"
 	
     sendEvent(name: "windowShade", value: "closing")
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_CLOSE)
@@ -225,6 +227,7 @@ def close() {
 
 def open() {
 	if(logEnable) log.info "open()"
+    if(logInfoEnable) log.info "open()"
 
     sendEvent(name: "windowShade", value: "opening")
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
@@ -245,6 +248,7 @@ def off(){
 
 def setLevel(data, rate = null) {
 	if(logEnable) log.info "setLevel()"
+    if(logInfoEnable) log.info "setLevel()"
 	def cmd
     def level = data as Integer
 	if (supportsLiftPercentage()) {
@@ -285,6 +289,7 @@ def pause() {
 }
 def stop() {
 	if(logEnable) log.info "stop()"
+    if(logInfoEnable) log.info "stop()"
 	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_PAUSE)
 }
 
@@ -391,3 +396,4 @@ def reportsBatteryPercentage() {
 def isAxisGear() {
 	device.getDataValue("model") == "Gear"
 }
+
