@@ -22,11 +22,11 @@ metadata {
         capability "SwitchLevel"
         //capability "ChangeLevel"
         capability "Switch"
-        capability "Initialize"
+        //capability "Initialize"
         capability "Refresh"
-        command"presetPosition"
         command "ShadesUp"
         command "ShadesDown"
+        
 
 		fingerprint profileID: "0104", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
 		fingerprint profileId: "0104", deviceId: "0202", inClusters: "0000, 0003, 0006, 0008, 0102, 0020, 0001", outClusters: "0019", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
@@ -34,7 +34,7 @@ metadata {
 
     preferences() {    	
         section(""){
-			input "preset", "number", title: "Preset position", description: "Set the window shade preset position", defaultValue: 50, range: "1..100", required: false, displayDuringSetup: false
+            input "refreshSch", "bool", title: "Refresh Schedule", description: "Enable to refresh every 15mins to keep shades in sync", defaultValue:false, required: true
             input "logEnable", "bool", title: "Enable Debug logging", required: true, defaultValue: true
             input "logInfoEnable", "bool", title: "Enable text info logging", required: true, defaultValue: true
         }
@@ -71,6 +71,14 @@ private List<Map> collectAttributes(Map descMap) {
 	return descMaps
 }
 
+def updated(){
+    if (infoLogEnable)  log.info "Updated"
+    unschedule()
+    if (refreshSch) 
+    runEvery15Minutes(refresh)
+    if (infoLogEnable)  log.info "15 min Refresh Schedule Started"  
+}
+    
 def installed() {
 	if(logEnable) log.debug "installed"
 	sendEvent(name: "supportedWindowShadeCommands", value: JsonOutput.toJson(["open", "close", "stop"]))
@@ -222,7 +230,6 @@ def close() {
     runIn(10, "updateFinalState", [overwrite:true])
     
     setLevel(0)
-  
 }
 
 def open() {
@@ -233,8 +240,7 @@ def open() {
     zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_OPEN)
     runIn(10, "updateFinalState", [overwrite:true])
     
-    setLevel(100)
-    
+    setLevel(100)    
 }
 
 def on(){
@@ -245,10 +251,8 @@ def off(){
     close()
 }
 
-
 def setLevel(data, rate = null) {
-	if(logEnable) log.info "setLevel()"
-    if(logInfoEnable) log.info "setLevel()"
+    if(logInfoEnable) log.info "setLevel ${data}%"
 	def cmd
     def level = data as Integer
 	if (supportsLiftPercentage()) {
@@ -261,8 +265,7 @@ def setLevel(data, rate = null) {
 	} else {
 		cmd = zigbee.command(zigbee.LEVEL_CONTROL_CLUSTER, COMMAND_MOVE_LEVEL_ONOFF, zigbee.convertToHexString(Math.round(levelParam * 255 / 100), 2))
 	}
-    levelEventHandler(level)
-    
+    levelEventHandler(level)    
     /*runIn(30, "updateFinalState", [overwrite:true])*/
 	cmd
 }
@@ -273,28 +276,24 @@ def updateLiftState() {
 	} else {
 		cmds = zigbee.readAttribute(zigbee.LEVEL_CONTROL_CLUSTER, ATTRIBUTE_CURRENT_LEVEL)
 	}
-
     updateFinalState()
     return cmds
 
 }
 
-
 def setPosition(data) {
-    if(logEnable) log.info "setPosition()"
+    if(logEnable) log.info "setPosition ${data}%"
 	setLevel(data)
 }
+// AXIS does not repond fast enough to use pause
 def pause() {
     stop()
 }
+// AXIS does not repond fast enough to use stop 
 def stop() {
 	if(logEnable) log.info "stop()"
     if(logInfoEnable) log.info "stop()"
 	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_PAUSE)
-}
-
-def presetPosition() {
-    setLevel(preset ?: 50)
 }
 
 /**
@@ -316,7 +315,6 @@ def refresh() {
     if (isAxisGear()) {
         cmds += zigbee.readAttribute(zigbee.POWER_CONFIGURATION_CLUSTER, BATTERY_PERCENTAGE_REMAINING)
 		cmds += zigbee.readAttribute(CLUSTER_BASIC, ATTRIBUTE_BUILD_ID)
-
     }
 	return cmds
 }
@@ -325,7 +323,6 @@ def configure() {
 	// Device-Watch allows 2 check-in misses from device + ping (plus 2 min lag time)
 	if(logEnable) log.info "configure()"
     state.currentVersion = 0
-
 
 	sendEvent(name: "checkInterval", value: 2 * 60 * 60 + 2 * 60, displayed: false, data: [protocol: "zigbee", hubHardwareId: device.hub.hardwareID])
 	if(logEnable) log.debug "Configuring Reporting and Bindings."
@@ -396,4 +393,3 @@ def reportsBatteryPercentage() {
 def isAxisGear() {
 	device.getDataValue("model") == "Gear"
 }
-
