@@ -12,34 +12,30 @@
 import groovy.json.JsonOutput
 
 metadata {
-	definition (name: "AXIS Gear", namespace: "axis", author: "AXIS Labs", importURL: "https://raw.githubusercontent.com/cofin/hubitat-axis-gear-driver/main/AxisGear.groovy") {  
+	definition (name: "AXIS Gear", namespace: "AXIS Gear", author: "AXIS Labs", importURL: "https://raw.githubusercontent.com/cofin/hubitat-axis-gear-driver/main/AxisGear.groovy----") {
 		capability "Actuator"
 		capability "Battery"
 		capability "Configuration"
 		capability "Refresh"
 		capability "WindowShade"
-		//capability "HealthCheck"
         capability "SwitchLevel"
-        //capability "ChangeLevel"
         capability "Switch"
-        //capability "Initialize"
         capability "Refresh"
+
         command "ShadesUp"
         command "ShadesDown"
-        
 
 		fingerprint profileID: "0104", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
 		fingerprint profileId: "0104", deviceId: "0202", inClusters: "0000, 0003, 0006, 0008, 0102, 0020, 0001", outClusters: "0019", manufacturer: "AXIS", model: "Gear", deviceJoinName: "AXIS Gear"
 	}
 
-    preferences() {    	
+    preferences() {
         section(""){
             input "refreshSch", "bool", title: "Refresh Schedule", description: "Enable to refresh every 15mins to keep shades in sync", defaultValue:false, required: true
             input "logEnable", "bool", title: "Enable Debug logging", required: true, defaultValue: true
             input "logInfoEnable", "bool", title: "Enable text info logging", required: true, defaultValue: true
         }
     }
-
 }
 private getCLUSTER_BASIC() {0x0000}
 private getCLUSTER_WINDOW_COVERING() { 0x0102 }
@@ -74,11 +70,11 @@ private List<Map> collectAttributes(Map descMap) {
 def updated(){
     if (infoLogEnable)  log.info "Updated"
     unschedule()
-    if (refreshSch) 
+    if (refreshSch)
     runEvery15Minutes(refresh)
-    if (infoLogEnable)  log.info "15 min Refresh Schedule Started"  
+    if (infoLogEnable)  log.info "15 min Refresh Schedule Started"
 }
-    
+
 def installed() {
 	if(logEnable) log.debug "installed"
 	sendEvent(name: "supportedWindowShadeCommands", value: JsonOutput.toJson(["open", "close", "stop"]))
@@ -165,7 +161,6 @@ def ShadesDown(){
 	}
     //sendEvent(name:"level", value:shadeValue, displayed:true)
     setLevel(shadeValue)
-	   
 }
 
 def levelEventHandler(currentLevel) {
@@ -296,6 +291,17 @@ def stop() {
 	zigbee.command(CLUSTER_WINDOW_COVERING, COMMAND_PAUSE)
 }
 
+//added for new window shade commands in hubitat
+def stopPositionChange(){
+    stop()
+}
+def startPositionChange(direction) {
+    if (direction == "open") {
+        open()
+    } else {
+       close()
+    }
+}
 /**
  * PING is used by Device-Watch in attempt to reach the Device
  * */
